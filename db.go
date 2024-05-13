@@ -7,7 +7,7 @@ import (
 
 type KVDB interface {
 	Get(key string) (any, error)
-	Put(key string, value any) error
+	Set(key string, value any) error
 	Delete(key string) error
 	GetAllKeys() ([]string, error)
 	Exists(key string) (bool, error)
@@ -34,7 +34,7 @@ func (k *db) Get(key string) (any, error) {
 	return nil, errors.New("key not found")
 }
 
-func (k *db) Put(key string, value any) error {
+func (k *db) Set(key string, value any) error {
 	k.mutex.Lock()
 	k.m[key] = value
 	k.mutex.Unlock()
