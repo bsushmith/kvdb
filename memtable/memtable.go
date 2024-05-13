@@ -2,6 +2,8 @@ package memtable
 
 import "fmt"
 
+// Memtable is a simple in-memory implementation
+// of a balanced binary search tree (BST) - AVL tree
 type Memtable struct {
 	root *Node
 }
@@ -14,8 +16,8 @@ const (
 	postOrder
 )
 
-func (mt *Memtable) Insert(key int) {
-	mt.root = mt.root.Insert(key)
+func (mt *Memtable) Insert(node *Node) {
+	mt.root = mt.root.Insert(node)
 }
 
 func (mt *Memtable) Search(key int) *Node {
@@ -24,6 +26,26 @@ func (mt *Memtable) Search(key int) *Node {
 
 func (mt *Memtable) Delete(key int) {
 	mt.root.Delete(key)
+}
+
+func leftRotate(n *Node) *Node {
+	y := n.Right
+	x := y.Left
+	y.Left = n
+	n.Right = x
+	n.Height = max(height(n.Left), height(n.Right)) + 1
+	y.Height = max(height(y.Left), height(y.Right)) + 1
+	return y
+}
+
+func rightRotate(n *Node) *Node {
+	y := n.Left
+	x := y.Right
+	y.Right = n
+	n.Left = x
+	n.Height = max(height(n.Left), height(n.Right)) + 1
+	y.Height = max(height(y.Left), height(y.Right)) + 1
+	return y
 }
 
 // Print prints the tree in the specified order
@@ -45,13 +67,83 @@ func (mt *Memtable) Print(ot orderType) {
 }
 
 type Node struct {
-	Key   int
-	Left  *Node
-	Right *Node
+	Key    int
+	Value  []byte
+	Left   *Node
+	Right  *Node
+	Height int
 }
 
-func (n *Node) Insert(key int) *Node {
-	panic("implement me")
+func NewNode(key int, value []byte) *Node {
+	return &Node{
+		Key:   key,
+		Value: value,
+	}
+}
+
+func height(n *Node) int {
+	if n == nil {
+		return 0
+	}
+	return n.Height
+}
+
+func getBalanceFactor(n *Node) int {
+	if n == nil {
+		return 0
+	}
+	return height(n.Left) - height(n.Right)
+}
+
+func minValueNode(n *Node) *Node {
+	current := n
+	for current.Left != nil {
+		current = current.Left
+	}
+	return current
+}
+
+func (n *Node) Insert(m *Node) *Node {
+	if n == nil {
+		return m
+	}
+	if m.Key < n.Key {
+		n.Left = n.Left.Insert(m)
+	} else if m.Key > n.Key {
+		n.Right = n.Right.Insert(m)
+	} else {
+		n.Value = m.Value
+	}
+	n.Height = max(height(n.Left), height(n.Right)) + 1
+
+	return n.rebalance()
+}
+
+func (n *Node) rebalance() *Node {
+	balanceFactor := getBalanceFactor(n)
+	// LL
+	if balanceFactor > 1 && getBalanceFactor(n.Left) >= 0 {
+		return rightRotate(n)
+	}
+
+	// LR
+	if balanceFactor > 1 && getBalanceFactor(n.Left) < 0 {
+		n.Left = leftRotate(n.Left)
+		return rightRotate(n)
+	}
+
+	// RR
+	if balanceFactor < -1 && getBalanceFactor(n.Right) <= 0 {
+		return leftRotate(n)
+	}
+
+	// RL
+	if balanceFactor < -1 && getBalanceFactor(n.Right) > 0 {
+		n.Right = rightRotate(n.Right)
+		return leftRotate(n)
+	}
+
+	return n
 }
 
 func (n *Node) Search(key int) *Node {
@@ -67,12 +159,43 @@ func (n *Node) Search(key int) *Node {
 	return n
 }
 
-func (n *Node) Delete(key int) {
-	panic("implement me")
+func (n *Node) Delete(key int) *Node {
+	if n == nil {
+		return nil
+	}
+
+	if key < n.Key {
+		n.Left = n.Left.Delete(key)
+	} else if key > n.Key {
+		n.Right = n.Right.Delete(key)
+	} else if n.Left == nil || n.Right == nil {
+		var temp *Node
+		if n.Left == nil {
+			temp = n.Right
+		} else {
+			temp = n.Left
+		}
+		if temp == nil {
+			temp = n
+			n = nil
+		} else {
+			n = temp
+		}
+	} else {
+		temp := minValueNode(n.Right)
+		n.Key = temp.Key
+		n.Right = n.Right.Delete(temp.Key)
+	}
+
+	if n == nil {
+		return n
+	}
+	n.Height = max(height(n.Left), height(n.Right)) + 1
+
+	return n.rebalance()
 }
 
-// printInorder prints the tree in inorder
-// inorder: left, root, right
+// printInorder: left, root, right
 func (n *Node) printInorder() {
 	if n == nil {
 		return
@@ -86,8 +209,7 @@ func (n *Node) printInorder() {
 	}
 }
 
-// printPreorder prints the tree in preorder
-// preorder: root, left, right
+// printPreorder: root, left, right
 func (n *Node) printPreorder() {
 	if n == nil {
 		return
@@ -101,8 +223,7 @@ func (n *Node) printPreorder() {
 	}
 }
 
-// printPostorder prints the tree in postorder
-// postorder: left, right, root
+// printPostorder: left, right, root
 func (n *Node) printPostorder() {
 	if n == nil {
 		return
