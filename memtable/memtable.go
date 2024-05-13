@@ -33,8 +33,9 @@ func leftRotate(n *Node) *Node {
 	x := y.Left
 	y.Left = n
 	n.Right = x
-	n.Height = max(height(n.Left), height(n.Right)) + 1
-	y.Height = max(height(y.Left), height(y.Right)) + 1
+
+	n.updateHeight()
+	y.updateHeight()
 	return y
 }
 
@@ -43,8 +44,8 @@ func rightRotate(n *Node) *Node {
 	x := y.Right
 	y.Right = n
 	n.Left = x
-	n.Height = max(height(n.Left), height(n.Right)) + 1
-	y.Height = max(height(y.Left), height(y.Right)) + 1
+	n.updateHeight()
+	y.updateHeight()
 	return y
 }
 
@@ -114,7 +115,7 @@ func (n *Node) Insert(m *Node) *Node {
 	} else {
 		n.Value = m.Value
 	}
-	n.Height = max(height(n.Left), height(n.Right)) + 1
+	n.updateHeight()
 
 	return n.rebalance()
 }
@@ -190,9 +191,12 @@ func (n *Node) Delete(key int) *Node {
 	if n == nil {
 		return n
 	}
-	n.Height = max(height(n.Left), height(n.Right)) + 1
-
+	n.updateHeight()
 	return n.rebalance()
+}
+
+func (n *Node) updateHeight() {
+	n.Height = max(height(n.Left), height(n.Right)) + 1
 }
 
 // printInorder: left, root, right
